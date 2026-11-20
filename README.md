@@ -24,6 +24,7 @@ A production-grade, enterprise-ready **Advanced Retrieval-Augmented Generation (
    - [Backend Setup](#backend-setup)
    - [Frontend Setup](#frontend-setup)
    - [Docker Deployment](#docker-deployment)
+   - [Render Deployment](#render-deployment)
 7. [API Endpoint Reference](#api-endpoint-reference)
 8. [Automated Testing Suite](#automated-testing-suite)
 9. [Verification & Validation Test Cases](#verification--validation-test-cases)
@@ -264,6 +265,15 @@ Run the complete stack (FastAPI backend + local Qdrant container + Vite frontend
 ```bash
 docker-compose up --build
 ```
+
+### Render Deployment
+This repository includes a Render Blueprint in `render.yaml` for a free demo deployment:
+
+1. Open the [Render Blueprint deploy page](https://render.com/deploy?repo=https://github.com/nitinsharma2005900-ai/nitinsharma-ai) and connect the GitHub repository.
+2. Set `GEMINI_API_KEY` and `COHERE_API_KEY` as secret environment variables when prompted. Do not commit `.env` or paste keys into source files.
+3. Deploy both services. The `nitinsharma-ai` static site uses the API URL of `nitinsharma-ai-api` automatically.
+
+The free backend may sleep when idle, and its filesystem is temporary. Uploaded documents and their indexes can be lost when Render restarts or redeploys the backend.
 
 ---
 
