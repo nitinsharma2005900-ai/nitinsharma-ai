@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advanced RAG Agent | Context Compression & Semantic Memory</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      background-color: #070B14;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(6, 182, 212, 0.08) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.08) 0px, transparent 50%),
+        radial-gradient(at 50% 100%, rgba(15, 23, 42, 0.8) 0px, transparent 60%);
+      color: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .glass-panel {
+      background: rgba(13, 21, 39, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+    }
+    .glass-hover:hover {
+      background: rgba(20, 32, 59, 0.85);
+      border-color: rgba(6, 182, 212, 0.35);
+      box-shadow: 0 12px 40px 0 rgba(6, 182, 212, 0.12);
+    }
+    pre, code {
+      font-family: "Fira Code", monospace;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Navbar -->
+  <header class="h-16 border-b border-white/5 px-6 flex items-center justify-between glass-panel sticky top-0 z-30">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-purple-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+        <i class="fa-solid fa-brain text-white text-sm"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-base bg-gradient-to-r from-white via-slate-200 to-cyan-300 bg-clip-text text-transparent">
+          Advanced RAG Agent
+        </h1>
+        <div class="text-[10px] tracking-wider uppercase font-semibold text-cyan-400">
+          Context Compression & Semantic Memory
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span class="text-slate-300 font-mono text-[11px]" id="systemStatus">Online (API Ready)</span>
+      </div>
+
+      <div class="flex items-center gap-2 px-3 py-1 rounded-xl bg-white/5 border border-white/10 text-xs">
+        <i class="fa-solid fa-user text-cyan-400"></i>
+        <span class="text-slate-400">User:</span>
+        <select id="userSelector" onchange="switchUser(this.value)" class="bg-transparent text-cyan-300 font-mono text-xs focus:outline-none cursor-pointer">
+          <option value="usr_99" class="bg-slate-900 text-white">usr_99 (Default Test)</option>
+          <option value="usr_developer" class="bg-slate-900 text-white">usr_developer</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <div class="flex-1 flex">
+    <!-- Sidebar -->
+    <aside class="w-64 border-r border-white/5 p-4 flex flex-col justify-between glass-panel sticky top-16 h-[calc(100vh-4rem)]">
+      <div class="space-y-1.5">
+        <div class="px-3 py-2 text-[10px] uppercase font-bold tracking-wider text-slate-500">Navigation</div>
+        <button onclick="setTab('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all bg-gradient-to-r from-cyan-500/20 to-purple-600/20 text-cyan-300 border border-cyan-500/30">
+          <i class="fa-solid fa-chart-pie w-4"></i><span>Dashboard</span>
+        </button>
+        <button onclick="setTab('chat')" id="nav-chat" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-white/5">
+          <i class="fa-solid fa-comments w-4"></i><span>AI Chat</span>
+        </button>
+        <button onclick="setTab('documents')" id="nav-documents" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-white/5">
+          <i class="fa-solid fa-folder-open w-4"></i><span>Document Library</span>
+        </button>
+        <button onclick="setTab('analytics')" id="nav-analytics" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-white/5">
+          <i class="fa-solid fa-chart-simple w-4"></i><span>Retrieval Analytics</span>
+        </button>
+        <button onclick="setTab('memories')" id="nav-memories" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-white/5">
+          <i class="fa-solid fa-memory w-4"></i><span>Semantic Memory</span>
+        </button>
+        <button onclick="setTab('apidocs')" id="nav-apidocs" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-white/5">
+          <i class="fa-solid fa-code w-4"></i><span>API Docs</span>
+        </button>
+      </div>
+
+      <div class="p-3 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-400 space-y-1">
+        <div class="flex justify-between font-mono text-[11px]">
+          <span>RRF Fusion:</span><span class="text-cyan-400 font-semibold">k=60</span>
+        </div>
+        <div class="flex justify-between font-mono text-[11px]">
+          <span>ReRank Model:</span><span class="text-purple-400 font-semibold">v3.0</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main View Area -->
+    <main class="flex-1 p-6 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full">
+
+      <!-- TAB 1: DASHBOARD -->
+      <div id="tab-dashboard" class="space-y-6">
+        <div class="relative overflow-hidden rounded-3xl p-8 glass-panel border border-cyan-500/20 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-800">
+          <h2 class="text-3xl font-extrabold text-white mb-2">Advanced RAG Agent Control Center</h2>
+          <p class="text-slate-300 text-sm max-w-2xl leading-relaxed">
+            Production-grade RAG pipeline integrating hierarchical Parent-Child segment mapping, Reciprocal Rank Fusion dense-sparse hybrid retrieval, Cohere ReRank v3 token compression, and persistent Mem0 persona adaptation.
+          </p>
+          <div class="flex gap-3 mt-4">
+            <button onclick="setTab('chat')" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-medium text-sm shadow-lg shadow-cyan-500/25">
+              Launch AI Chat <i class="fa-solid fa-arrow-right ml-1"></i>
+            </button>
+            <button onclick="setTab('documents')" class="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 text-sm">
+              Upload Documents
+            </button>
+          </div>
+        </div>
+
+        <!-- Metrics Row -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="glass-panel p-5 rounded-2xl space-y-2">
+            <div class="text-xs uppercase font-medium text-slate-400">Indexed Documents</div>
+            <div class="text-3xl font-bold font-mono text-cyan-400" id="statDocs">0</div>
+            <div class="text-xs text-slate-500">PDF, TXT, DOCX</div>
+          </div>
+          <div class="glass-panel p-5 rounded-2xl space-y-2">
+            <div class="text-xs uppercase font-medium text-slate-400">User Memories</div>
+            <div class="text-3xl font-bold font-mono text-purple-400" id="statMems">0</div>
+            <div class="text-xs text-slate-500">Active profile: <span class="text-cyan-300 font-mono" id="statUser">usr_99</span></div>
+          </div>
+          <div class="glass-panel p-5 rounded-2xl space-y-2">
+            <div class="text-xs uppercase font-medium text-slate-400">RRF Smoothing</div>
+            <div class="text-3xl font-bold font-mono text-pink-400">k = 60</div>
+            <div class="text-xs text-slate-500">Dense + Sparse BM25</div>
+          </div>
+          <div class="glass-panel p-5 rounded-2xl space-y-2">
+            <div class="text-xs uppercase font-medium text-slate-400">ReRank Top N</div>
+            <div class="text-3xl font-bold font-mono text-emerald-400">5 Docs</div>
+            <div class="text-xs text-slate-500">From 20 candidates</div>
+          </div>
+        </div>
+
+        <!-- API Key Configuration Card -->
+        <div class="glass-panel p-6 rounded-2xl border-l-4 border-l-cyan-500 space-y-4">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+            <div>
+              <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-key text-cyan-400"></i> Configure Google Gemini & Cohere API Keys
+              </h3>
+              <p class="text-xs text-slate-400">Save your API keys to activate live Google Gemini LLM generation and Cohere ReRank v3 across your uploaded documents.</p>
+            </div>
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-xs text-cyan-400 hover:underline flex items-center gap-1 font-mono">
+              Get free Gemini API Key <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+            </a>
+          </div>
+
+          <form onsubmit="saveApiKeys(event)" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label class="text-[11px] font-mono text-slate-400 block mb-1">Google Gemini API Key</label>
+              <input type="password" id="geminiKeyInput" placeholder="AIzaSy..." class="w-full bg-slate-950/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400">
+            </div>
+            <div>
+              <label class="text-[11px] font-mono text-slate-400 block mb-1">Cohere API Key (Optional)</label>
+              <input type="password" id="cohereKeyInput" placeholder="co-... (optional)" class="w-full bg-slate-950/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-400">
+            </div>
+            <div class="flex flex-col justify-end">
+              <button type="submit" class="w-full px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-medium text-xs hover:opacity-95 transition-opacity flex items-center justify-center gap-2">
+                <i class="fa-solid fa-floppy-disk"></i> Save & Activate Keys
+              </button>
+            </div>
+          </form>
+          <div id="keySaveFeedback" class="text-xs font-mono"></div>
+        </div>
+      </div>
+
+      <!-- TAB 2: CHAT -->
+      <div id="tab-chat" class="hidden flex flex-col h-[calc(100vh-8rem)] gap-4">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-400">Active Session:</span>
+            <span class="px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-mono text-xs font-semibold" id="currentSessionBadge">session_001</span>
+            <button onclick="newSession()" class="px-3 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-300">
+              <i class="fa-solid fa-plus mr-1"></i> New Session
+            </button>
+          </div>
+          <button onclick="clearChatUI()" class="px-3 py-1 rounded-lg bg-white/5 hover:bg-rose-500/20 hover:text-rose-300 border border-white/10 text-xs text-slate-400">
+            <i class="fa-solid fa-trash-can mr-1"></i> Clear Chat
+          </button>
+        </div>
+
+        <!-- Shortcuts -->
+        <div class="flex flex-wrap items-center gap-2 px-1 text-xs">
+          <span class="text-slate-500 font-semibold text-[11px] uppercase tracking-wider">Test Shortcuts:</span>
+          <button onclick="sendQuery('Hello! I work in Python and prefer brief, code-only responses.')" class="px-2.5 py-1 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 font-mono text-[11px]">
+            Session 1: "Work in Python & brief code-only"
+          </button>
+          <button onclick="sendQuery('Write a quick merge sort routine.')" class="px-2.5 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 font-mono text-[11px]">
+            Session 2: "Write a quick merge sort routine."
+          </button>
+        </div>
+
+        <div id="chatMessages" class="flex-1 overflow-y-auto glass-panel p-4 md:p-6 rounded-2xl space-y-4">
+          <div class="flex gap-3 justify-start">
+            <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+              <i class="fa-solid fa-robot text-white text-xs"></i>
+            </div>
+            <div class="max-w-2xl rounded-2xl p-4 bg-slate-800/90 border border-white/10 text-slate-200 text-sm leading-relaxed">
+              Hello! I am your <strong>Advanced RAG Agent</strong>. Ask me questions about your uploaded documents or share your language and response preferences!
+            </div>
+          </div>
+        </div>
+
+        <!-- Input Bar -->
+        <form onsubmit="handleChatSubmit(event)" class="flex items-center gap-3 glass-panel p-2.5 rounded-2xl border border-white/10">
+          <input type="text" id="chatInput" placeholder="Ask a question or state developer preferences..." class="flex-1 bg-transparent px-4 py-2 text-sm text-white focus:outline-none">
+          <button type="submit" id="sendBtn" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-medium text-sm flex items-center gap-2">
+            <span>Send</span> <i class="fa-solid fa-paper-plane text-xs"></i>
+          </button>
+        </form>
+      </div>
+
+      <!-- TAB 3: DOCUMENTS -->
+      <div id="tab-documents" class="hidden space-y-6">
+        <div>
+          <h2 class="text-2xl font-bold text-white">Document Ingestion & Chunk Store</h2>
+          <p class="text-xs text-slate-400">PDF, TXT, and DOCX documents with automatic parent (~1000 chars) and child (~200 chars) chunk partitioning.</p>
+        </div>
+
+        <div id="uploadFeedback"></div>
+
+        <div class="glass-panel p-6 rounded-2xl border-2 border-dashed border-white/10 hover:border-cyan-500/40 text-center transition-colors">
+          <input type="file" id="fileUploader" accept=".pdf,.txt,.docx,.md" onchange="uploadFile(this)" class="hidden">
+          <label for="fileUploader" class="cursor-pointer flex flex-col items-center space-y-2">
+            <div class="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 shadow-md">
+              <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
+            </div>
+            <span class="text-sm font-semibold text-white">Click to Upload Document (PDF / TXT / DOCX)</span>
+            <span class="text-xs text-slate-400">Documents are automatically chunked and indexed</span>
+          </label>
+        </div>
+
+        <div class="glass-panel p-5 rounded-2xl space-y-4">
+          <h3 class="text-sm font-bold text-white">Indexed Documents</h3>
+          <div id="docsList" class="divide-y divide-white/5 text-sm text-slate-300">
+            <div class="py-4 text-center text-slate-500 text-xs">Loading documents...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: ANALYTICS -->
+      <div id="tab-analytics" class="hidden space-y-6">
+        <div>
+          <h2 class="text-2xl font-bold text-white">Retrieval & Context Compression Analytics</h2>
+          <p class="text-xs text-slate-400">Inspect Dense vs. BM25, RRF fusion scores, Cohere ReRank, and latency telemetry.</p>
+        </div>
+        <div class="flex gap-3">
+          <input type="text" id="analyticsQuery" value="hybrid search parent document retrieval BM25" class="flex-1 glass-panel px-4 py-2.5 rounded-xl border border-white/10 text-sm text-white focus:outline-none">
+          <button onclick="runAnalytics()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-medium text-sm">
+            Trace Pipeline <i class="fa-solid fa-arrow-trend-up ml-1"></i>
+          </button>
+        </div>
+        <div id="analyticsResults" class="space-y-4">
+          <div class="p-8 text-center text-slate-500 text-xs glass-panel rounded-2xl">
+            Click "Trace Pipeline" to inspect intermediate rankings and compression metrics.
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 5: MEMORIES -->
+      <div id="tab-memories" class="hidden space-y-6">
+        <div class="flex justify-between items-center">
+          <div>
+            <h2 class="text-2xl font-bold text-white">Semantic Memory Store (Mem0)</h2>
+            <p class="text-xs text-slate-400">Persistent developer facts and preferences shaping Gemini's system prompt.</p>
+          </div>
+          <button onclick="clearUserMemories()" class="px-3.5 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs font-medium">
+            <i class="fa-solid fa-trash-can mr-1"></i> Clear User Memories
+          </button>
+        </div>
+        <div class="glass-panel p-5 rounded-2xl space-y-4">
+          <h3 class="text-sm font-bold text-white">Extracted Facts for Profile</h3>
+          <div id="memoriesList" class="divide-y divide-white/5 text-sm text-slate-300">
+            <div class="py-4 text-center text-slate-500 text-xs">Loading memories...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 6: API DOCS -->
+      <div id="tab-apidocs" class="hidden space-y-6">
+        <div>
+          <h2 class="text-2xl font-bold text-white">FastAPI Endpoints Specification</h2>
+          <p class="text-xs text-slate-400">Interactive REST specifications and cURL examples.</p>
+        </div>
+        <div class="glass-panel p-5 rounded-2xl space-y-3">
+          <div class="flex items-center gap-3">
+            <span class="px-2.5 py-1 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 text-xs font-mono font-bold">POST</span>
+            <span class="font-mono text-white text-sm">/api/chat</span>
+          </div>
+          <pre class="p-3 bg-black/40 rounded-xl text-xs font-mono text-cyan-300 overflow-x-auto">curl -X POST http://localhost:8000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Explain parent document retrieval", "user_id": "usr_99", "session_id": "session_001"}'</pre>
+        </div>
+        <div class="glass-panel p-5 rounded-2xl space-y-3">
+          <div class="flex items-center gap-3">
+            <span class="px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-mono font-bold">GET</span>
+            <span class="font-mono text-white text-sm">/api/users/{user_id}/memories</span>
+          </div>
+          <pre class="p-3 bg-black/40 rounded-xl text-xs font-mono text-emerald-300 overflow-x-auto">curl -X GET http://localhost:8000/api/users/usr_99/memories</pre>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    let activeUser = 'usr_99';
+    let currentSession = 'session_001';
+
+    function setTab(tabId) {
+      ['dashboard', 'chat', 'documents', 'analytics', 'memories', 'apidocs'].forEach(t => {
+        const el = document.getElementById('tab-' + t);
+        const nav = document.getElementById('nav-' + t);
+        if (el) el.classList.add('hidden');
+        if (nav) {
+          nav.className = "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-white/5";
+        }
+      });
+      const activeEl = document.getElementById('tab-' + tabId);
+      const activeNav = document.getElementById('nav-' + tabId);
+      if (activeEl) activeEl.classList.remove('hidden');
+      if (activeNav) {
+        activeNav.className = "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all bg-gradient-to-r from-cyan-500/20 to-purple-600/20 text-cyan-300 border border-cyan-500/30";
+      }
+      if (tabId === 'documents') loadDocs();
+      if (tabId === 'memories') loadMemories();
+      if (tabId === 'dashboard') loadStats();
+    }
+
+    function switchUser(u) {
+      activeUser = u;
+      document.getElementById('statUser').innerText = u;
+      loadMemories();
+      loadStats();
+    }
+
+    function newSession() {
+      currentSession = 'session_' + Math.floor(100 + Math.random() * 900);
+      document.getElementById('currentSessionBadge').innerText = currentSession;
+      appendMessage('assistant', `Started new session <strong>${currentSession}</strong>. Your semantic memory profile remains active!`);
+    }
+
+    function clearChatUI() {
+      document.getElementById('chatMessages').innerHTML = `
+        <div class="flex gap-3 justify-start">
+          <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+            <i class="fa-solid fa-robot text-white text-xs"></i>
+          </div>
+          <div class="max-w-2xl rounded-2xl p-4 bg-slate-800/90 border border-white/10 text-slate-200 text-sm leading-relaxed">
+            Chat history cleared. How can I assist you today?
+          </div>
+        </div>`;
+    }
+
+    async function loadStats() {
+      try {
+        const [docsRes, memsRes, healthRes] = await Promise.all([
+          fetch('/api/documents').then(r => r.json()).catch(() => ({ total: 0 })),
+          fetch('/api/users/' + activeUser + '/memories').then(r => r.json()).catch(() => ({ total_memories: 0 })),
+          fetch('/api/health').then(r => r.json()).catch(() => null)
+        ]);
+        document.getElementById('statDocs').innerText = docsRes.total || 0;
+        document.getElementById('statMems').innerText = memsRes.total_memories || 0;
+        if (healthRes && healthRes.configuration && healthRes.configuration.gemini_api_configured) {
+          document.getElementById('systemStatus').innerText = 'Online (Live Gemini API)';
+        }
+      } catch (e) {}
+    }
+
+    async function uploadFile(input) {
+      const file = input.files?.[0];
+      if (!file) return;
+
+      const uploadStatus = document.getElementById('uploadFeedback');
+      if (uploadStatus) {
+        uploadStatus.innerHTML = `<div class="p-3 bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 rounded-xl text-xs animate-pulse">
+          <i class="fa-solid fa-spinner fa-spin mr-2"></i> Parsing "${file.name}", splitting into parent-child chunks & indexing...
+        </div>`;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const res = await fetch('/api/documents/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await res.json();
+        if (res.ok) {
+          if (uploadStatus) {
+            uploadStatus.innerHTML = `<div class="p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-xl text-xs">
+              <i class="fa-solid fa-circle-check mr-2"></i> ${data.message}
+            </div>`;
+          }
+          loadDocs();
+          loadStats();
+        } else {
+          if (uploadStatus) {
+            uploadStatus.innerHTML = `<div class="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-xl text-xs">
+              <i class="fa-solid fa-triangle-exclamation mr-2"></i> ${data.error || 'Upload failed'}
+            </div>`;
+          }
+        }
+      } catch (err) {
+        if (uploadStatus) {
+          uploadStatus.innerHTML = `<div class="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-xl text-xs">
+            <i class="fa-solid fa-triangle-exclamation mr-2"></i> Error uploading: ${err.message}
+          </div>`;
+        }
+      } finally {
+        input.value = '';
+      }
+    }
+
+    async function saveApiKeys(event) {
+      if (event) event.preventDefault();
+      const geminiKey = document.getElementById('geminiKeyInput').value.trim();
+      const cohereKey = document.getElementById('cohereKeyInput').value.trim();
+      const feedback = document.getElementById('keySaveFeedback');
+
+      try {
+        const res = await fetch('/api/config/keys', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gemini_api_key: geminiKey, cohere_api_key: cohereKey })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          feedback.innerHTML = `<span class="text-emerald-400 font-semibold"><i class="fa-solid fa-check mr-1"></i> Keys saved! Gemini & Cohere are active.</span>`;
+          document.getElementById('systemStatus').innerText = 'Online (Live Gemini API)';
+          loadStats();
+        } else {
+          feedback.innerHTML = `<span class="text-rose-400 font-semibold"><i class="fa-solid fa-xmark mr-1"></i> Error saving keys: ${data.error}</span>`;
+        }
+      } catch (e) {
+        feedback.innerHTML = `<span class="text-rose-400 font-semibold"><i class="fa-solid fa-xmark mr-1"></i> Failed: ${e.message}</span>`;
+      }
+    }
+
+    async function loadDocs() {
+      try {
+        const res = await fetch('/api/documents').then(r => r.json());
+        const list = document.getElementById('docsList');
+        if (!res.documents || res.documents.length === 0) {
+          list.innerHTML = '<div class="py-6 text-center text-slate-500 text-xs">No documents uploaded yet.</div>';
+          return;
+        }
+        list.innerHTML = res.documents.map(d => `
+          <div class="py-3 flex items-center justify-between">
+            <div>
+              <div class="font-semibold text-white flex items-center gap-2">
+                <span>${d.filename}</span>
+                <span class="px-2 py-0.5 rounded text-[10px] bg-cyan-500/10 text-cyan-400 font-mono">${d.file_type}</span>
+              </div>
+              <div class="text-xs text-slate-400 font-mono">${d.parent_chunk_count} parents (~1k) • ${d.child_chunk_count} children (~200) • ${d.char_count} chars</div>
+            </div>
+            <button onclick="deleteDoc('${d.document_id}')" class="p-2 text-rose-400 hover:bg-rose-500/10 rounded-lg">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+        `).join('');
+      } catch (e) {}
+    }
+
+    async function deleteDoc(id) {
+      if (!confirm('Delete document ' + id + '?')) return;
+      await fetch('/api/documents/' + id, { method: 'DELETE' });
+      loadDocs();
+      loadStats();
+    }
+
+    async function loadMemories() {
+      try {
+        const res = await fetch('/api/users/' + activeUser + '/memories').then(r => r.json());
+        const list = document.getElementById('memoriesList');
+        if (!res.memories || res.memories.length === 0) {
+          list.innerHTML = '<div class="py-6 text-center text-slate-500 text-xs">No semantic memories stored for ' + activeUser + '.</div>';
+          return;
+        }
+        list.innerHTML = res.memories.map(m => `
+          <div class="py-3 flex items-center justify-between">
+            <div>
+              <div class="text-slate-200 font-medium">${m.fact}</div>
+              <div class="text-xs text-slate-400 font-mono">${m.category} • ${m.created_at}</div>
+            </div>
+            <button onclick="deleteMem('${m.id}')" class="p-2 text-rose-400 hover:bg-rose-500/10 rounded-lg">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+        `).join('');
+      } catch (e) {}
+    }
+
+    async function deleteMem(id) {
+      await fetch('/api/users/' + activeUser + '/memories/' + id, { method: 'DELETE' });
+      loadMemories();
+      loadStats();
+    }
+
+    async function clearUserMemories() {
+      if (!confirm('Clear all memories for ' + activeUser + '?')) return;
+      await fetch('/api/memory/clear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: activeUser })
+      });
+      loadMemories();
+      loadStats();
+    }
+
+    function appendMessage(role, text, telemetry, citations) {
+      const container = document.getElementById('chatMessages');
+      const isUser = role === 'user';
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`;
+
+      let citationsHtml = '';
+      if (citations && citations.length > 0) {
+        citationsHtml = `
+          <div class="pt-2 border-t border-white/10 text-xs text-cyan-300 space-y-1">
+            <div class="font-semibold"><i class="fa-solid fa-book-open mr-1"></i> Sources Cited (${citations.length}):</div>
+            ${citations.map(c => `
+              <div class="p-2 bg-black/30 rounded text-[11px] font-mono">
+                <span class="text-white">${c.document_name}</span> [${c.chunk_id}] (Score: ${c.relevance_score.toFixed(2)})
+                <div class="italic text-slate-400">"${c.snippet}"</div>
+              </div>
+            `).join('')}
+          </div>`;
+      }
+
+      let telemetryHtml = '';
+      if (telemetry) {
+        telemetryHtml = `
+          <div class="pt-2 border-t border-white/10 flex flex-wrap gap-2 text-[10px] font-mono">
+            <span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
+              <i class="fa-solid fa-bolt mr-1"></i>${telemetry.total_latency_ms.toFixed(1)}ms total
+            </span>
+            <span class="px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+              Ret: ${telemetry.retrieval_latency_ms.toFixed(1)}ms
+            </span>
+            <span class="px-2 py-0.5 rounded bg-purple-500/10 text-purple-300 border border-purple-500/20">
+              Rerank: ${telemetry.rerank_latency_ms.toFixed(1)}ms
+            </span>
+            <span class="px-2 py-0.5 rounded bg-pink-500/10 text-pink-300 border border-pink-500/20">
+              Gen: ${telemetry.generation_latency_ms.toFixed(1)}ms
+            </span>
+          </div>`;
+      }
+
+      msgDiv.innerHTML = `
+        ${!isUser ? '<div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 to-purple-600 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-robot text-white text-xs"></i></div>' : ''}
+        <div class="max-w-2xl rounded-2xl p-4 ${isUser ? 'bg-gradient-to-r from-cyan-600 to-cyan-700 text-white' : 'bg-slate-800/90 border border-white/10 text-slate-200'} text-sm leading-relaxed space-y-2">
+          <div class="whitespace-pre-wrap">${text}</div>
+          ${citationsHtml}
+          ${telemetryHtml}
+        </div>
+        ${isUser ? '<div class="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-user text-cyan-400 text-xs"></i></div>' : ''}
+      `;
+      container.appendChild(msgDiv);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    async function sendQuery(query) {
+      if (!query.trim()) return;
+      appendMessage('user', query);
+      document.getElementById('chatInput').value = '';
+
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query, user_id: activeUser, session_id: currentSession })
+        }).then(r => r.json());
+
+        appendMessage('assistant', res.answer, res.telemetry, res.citations);
+        loadStats();
+      } catch (err) {
+        appendMessage('assistant', '⚠️ Error contacting RAG agent: ' + err.message);
+      }
+    }
+
+    function handleChatSubmit(e) {
+      e.preventDefault();
+      const q = document.getElementById('chatInput').value;
+      sendQuery(q);
+    }
+
+    async function runAnalytics() {
+      const q = document.getElementById('analyticsQuery').value;
+      const resContainer = document.getElementById('analyticsResults');
+      resContainer.innerHTML = '<div class="p-6 text-center text-cyan-400 text-xs animate-pulse">Tracing hybrid search and Cohere ReRank stages...</div>';
+
+      try {
+        const data = await fetch('/api/analytics/inspect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: q, user_id: activeUser })
+        }).then(r => r.json());
+
+        resContainer.innerHTML = `
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="glass-panel p-4 rounded-xl">
+              <div class="text-xs text-slate-400 font-mono">Retrieval Stage</div>
+              <div class="text-2xl font-bold font-mono text-cyan-400">${data.telemetry.retrieval_latency_ms.toFixed(2)} ms</div>
+            </div>
+            <div class="glass-panel p-4 rounded-xl">
+              <div class="text-xs text-slate-400 font-mono">ReRank & Compression</div>
+              <div class="text-2xl font-bold font-mono text-purple-400">${data.telemetry.rerank_latency_ms.toFixed(2)} ms</div>
+            </div>
+            <div class="glass-panel p-4 rounded-xl">
+              <div class="text-xs text-slate-400 font-mono">Total Roundtrip</div>
+              <div class="text-2xl font-bold font-mono text-emerald-400">${data.telemetry.total_latency_ms.toFixed(2)} ms</div>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="glass-panel p-4 rounded-xl space-y-2">
+              <div class="text-xs font-bold text-cyan-400">RRF Fused Candidates (k=60)</div>
+              <div class="space-y-1.5 text-xs font-mono">
+                ${data.rrf_fused.slice(0, 5).map((f, i) => `
+                  <div class="p-2 bg-white/5 rounded flex justify-between">
+                    <span>#${i+1} ${f.doc_name}</span>
+                    <span class="text-pink-300 font-bold">RRF: ${f.rrf_score.toFixed(5)}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+            <div class="glass-panel p-4 rounded-xl space-y-2">
+              <div class="text-xs font-bold text-emerald-400">Top 5 Cohere ReRank & Compressed Context</div>
+              <div class="space-y-1.5 text-xs font-mono">
+                ${data.reranked_top5.map((d, i) => `
+                  <div class="p-2 bg-white/5 rounded space-y-1">
+                    <div class="flex justify-between">
+                      <span class="text-white">#${i+1} ${d.doc_name}</span>
+                      <span class="text-emerald-300 font-bold">Score: ${d.relevance_score.toFixed(2)}</span>
+                    </div>
+                    <div class="text-[10px] text-slate-400 italic font-sans">"${d.compressed_text.slice(0, 100)}..."</div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        resContainer.innerHTML = '<div class="p-4 text-rose-400 text-xs">Error running analytics: ' + err.message + '</div>';
+      }
+    }
+
+    // Init
+    loadStats();
+  </script>
+</body>
+</html>

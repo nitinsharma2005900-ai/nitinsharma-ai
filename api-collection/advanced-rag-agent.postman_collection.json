@@ -1,0 +1,248 @@
+{
+  "info": {
+    "name": "Advanced RAG Agent with Context Compression & Semantic Memory",
+    "description": "Comprehensive Postman Collection for the Advanced RAG Agent API, including Hybrid Search, Parent Document Retrieval, Cohere ReRank, Mem0 Semantic Memory, and Execution Latency Telemetry.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "usr_99",
+      "type": "string"
+    },
+    {
+      "key": "sessionId",
+      "value": "session_001",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health & System",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            },
+            "description": "Checks system readiness, registered indices, and API configuration status."
+          }
+        },
+        {
+          "name": "API Root Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": ["{{baseUrl}}"],
+              "path": [""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "RAG Chat",
+      "item": [
+        {
+          "name": "Chat - Initial Session (Preference Extraction)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"Hello! I work in Python and prefer brief, code-only responses.\",\n  \"user_id\": \"{{userId}}\",\n  \"session_id\": \"{{sessionId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat"]
+            },
+            "description": "First session chat query that triggers automatic semantic memory preference extraction."
+          }
+        },
+        {
+          "name": "Chat - Second Session (Persona Adaptation Test)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"Write a quick merge sort routine.\",\n  \"user_id\": \"{{userId}}\",\n  \"session_id\": \"session_002\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat"]
+            },
+            "description": "Verifies agent adapts to user profile by returning only the Python code block."
+          }
+        },
+        {
+          "name": "Chat - Document Query with Citations",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"Explain how hybrid search and parent document retrieval eliminate chunk boundary truncation.\",\n  \"user_id\": \"{{userId}}\",\n  \"session_id\": \"session_003\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat"]
+            },
+            "description": "Executes full RAG pipeline across ingested documents with citations and telemetry."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Semantic Memory",
+      "item": [
+        {
+          "name": "Get User Memories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}/memories",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userId}}", "memories"]
+            },
+            "description": "Retrieves the list of extracted semantic facts and preferences for a user."
+          }
+        },
+        {
+          "name": "Clear User Memories",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{userId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/memory/clear",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "memory", "clear"]
+            },
+            "description": "Clears all stored semantic memory facts for a given user."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Document Management",
+      "item": [
+        {
+          "name": "Upload Document (PDF, TXT, DOCX)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "description": "Upload a PDF, TXT, or DOCX document"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/documents/upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "documents", "upload"]
+            },
+            "description": "Uploads and splits document into parent chunks (~1000 chars) and child chunks (~200 chars)."
+          }
+        },
+        {
+          "name": "List All Documents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/documents",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "documents"]
+            },
+            "description": "Lists all ingested documents and their chunk counts."
+          }
+        },
+        {
+          "name": "Delete Document",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/documents/doc_sample_id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "documents", "doc_sample_id"]
+            },
+            "description": "Deletes a document and clears all parent and child chunks from storage and vector index."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Retrieval Analytics",
+      "item": [
+        {
+          "name": "Inspect Pipeline Stages",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"hybrid search dense BM25 RRF\",\n  \"user_id\": \"{{userId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/analytics/inspect",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "analytics", "inspect"]
+            },
+            "description": "Returns raw stage-by-stage outputs: Dense candidates, BM25 candidates, RRF fusion, and Cohere ReRank top-5 compression."
+          }
+        }
+      ]
+    }
+  ]
+}
