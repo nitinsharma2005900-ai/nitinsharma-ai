@@ -43,7 +43,8 @@ Standard RAG architectures suffer from context fragmentation, lack of keyword pr
 3. **Cohere ReRank & Context Compression**: Re-evaluates top 20 candidate parent nodes with Cohere ReRank (`rerank-english-v3.0`), discards items falling below a relevance threshold ($0.01$), and compresses context down to the **top 5 most relevant documents** to prune token noise.
 4. **Mem0 Persistent Semantic Memory**: Automatically extracts user preferences, coding language choices, and style preferences from conversations, associating them with `user_id`. In future sessions, memories are retrieved and injected into Google Gemini's system persona to dynamically adapt responses.
 5. **Real-Time Execution Latency Telemetry**: Every chat response returns real, non-zero execution latencies in milliseconds calculated via Python's high-precision monotonic `time.perf_counter()`.
-6. **Single-Document Summaries**: Broad summary requests use the full indexed document when exactly one document is available, rather than losing all context to reranker thresholding.
+6. **Single-Document Summaries**: Broad summary and document-description requests use the full indexed document when exactly one document is available, rather than losing all context to reranker thresholding.
+7. **General Q&A & Current Time**: Gemini can answer general questions with useful detail, uses a live Asia/Kolkata clock for date/time questions, and distinguishes those answers from document-grounded responses.
 
 ---
 
@@ -64,7 +65,7 @@ Standard RAG architectures suffer from context fragmentation, lack of keyword pr
 ### Backend
 - **Framework**: Python 3.10+, FastAPI (Asynchronous REST API)
 - **RAG Architecture**: LangChain / Custom Modular RAG Pipeline
-- **LLM Generation**: Google Gemini API (`gemini-3.5-flash-lite`), with clearly labeled general-knowledge answers when uploaded documents do not cover a general factual question
+- **LLM Generation**: Google Gemini API (`gemini-3.5-flash-lite`), with detailed general-knowledge answers, an authoritative current IST clock, and clear limitations for live web facts
 - **Dense Embeddings & ReRanking**: Cohere API (`embed-english-v3.0` & `rerank-english-v3.0`)
 - **Sparse Keyword Search**: Okapi BM25 (`k1=1.5, b=0.75`) with NLP tokenization
 - **Vector Database**: Local persistent Qdrant vector database (with zero-dependency fallback)

@@ -25,7 +25,13 @@ from app.schemas.chat import (
 
 SUMMARY_REQUEST_PATTERN = re.compile(
     r"\b(?:summar(?:y|ize|ise|izing|ising)|main\s+points?|key\s+points?|"
-    r"important\s+points?|overview|takeaways|gist|saaransh|mukhya\s+baatein)\b",
+    r"important\s+points?|overview|takeaways|gist|saaransh|mukhya\s+baatein|"
+    r"(?:describe|explain)\s+(?:(?:the|this|uploaded|attached)\s+)?"
+    r"(?:documents?|pdfs?|files?)|"
+    r"what\s+is\s+(?:(?:the|this|uploaded|attached)\s+)?"
+    r"(?:documents?|pdfs?|files?)\s+about|"
+    r"tell\s+me\s+about\s+(?:(?:the|this|uploaded|attached)\s+)?"
+    r"(?:documents?|pdfs?|files?))\b",
     re.IGNORECASE,
 )
 

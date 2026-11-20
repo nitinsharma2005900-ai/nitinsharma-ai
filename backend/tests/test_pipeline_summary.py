@@ -74,7 +74,7 @@ class TestDocumentSummaryContext(unittest.TestCase):
             ["child-1", "child-2"],
         )
 
-    def test_execute_chat_passes_summary_context_to_generator(self):
+    def test_execute_chat_passes_document_description_context_to_generator(self):
         self.pipeline.doc_service.list_documents.return_value = [self.document]
         self.pipeline.memory_store = Mock()
         self.pipeline.memory_store.extract_and_store.return_value = []
@@ -85,7 +85,7 @@ class TestDocumentSummaryContext(unittest.TestCase):
         self.pipeline.generator.generate.return_value = ("Summary answer", [], [])
 
         response = self.pipeline.execute_chat(
-            "What are the main points of this document?"
+            "describe document"
         )
 
         self.pipeline.compressor.rerank_and_compress.assert_not_called()

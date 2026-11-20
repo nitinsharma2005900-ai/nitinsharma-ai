@@ -1,6 +1,7 @@
 import unittest
 import asyncio
 import os
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, call, patch
 from urllib.error import HTTPError
 from pathlib import Path
@@ -63,6 +64,41 @@ class TestErrorHandling(unittest.TestCase):
         self.assertEqual(result, answer)
         self.assertEqual(sources, [])
         self.assertEqual(citations, [])
+
+    def test_live_prompt_includes_current_ist_time_and_requests_useful_detail(self):
+        answer = (
+            "General knowledge (not found in uploaded documents): "
+            "It is 4:30 PM IST on Friday, November 20, 2026."
+        )
+        generator = GeminiGenerator()
+        fixed_now = datetime(
+            2026,
+            11,
+            20,
+            16,
+            30,
+            tzinfo=timezone(timedelta(hours=5, minutes=30), name="IST"),
+        )
+
+        with patch.dict(
+            os.environ,
+            {"GEMINI_API_KEY": "test-key", "OFFLINE_TEST_MODE": "false"},
+        ), patch(
+            "app.rag.generator.datetime"
+        ) as datetime_mock, patch.object(
+            generator, "_call_gemini_api", return_value=answer
+        ) as call_api:
+            datetime_mock.now.return_value = fixed_now
+            generator.generate(
+                "What is the current date and time?",
+                [],
+            )
+
+        prompt = call_api.call_args.args[0]
+        self.assertIn("Friday, 20 November 2026, 04:30:00 PM IST", prompt)
+        self.assertIn("UTC+05:30", prompt)
+        self.assertIn("useful, well-developed answers", prompt)
+        self.assertIn("Do not guess or claim you cannot access a clock", prompt)
 
     def test_12_empty_query_validation(self):
         """Test 12a: Verify empty query raises validation error."""

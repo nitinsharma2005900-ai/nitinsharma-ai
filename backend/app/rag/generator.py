@@ -3,6 +3,7 @@ import urllib.request
 import urllib.error
 import re
 import time
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any, Tuple
 
 from app.core.config import settings
@@ -11,6 +12,7 @@ from app.schemas.chat import CitationItem
 
 
 GENERAL_KNOWLEDGE_PREFIX = "General knowledge (not found in uploaded documents):"
+INDIA_TIMEZONE = timezone(timedelta(hours=5, minutes=30), name="IST")
 
 SYSTEM_PROMPT_TEMPLATE = """You are an Advanced RAG Agent with Context Compression and Semantic Memory.
 Your task is to answer accurately, using retrieved context when it supports the answer.
@@ -18,11 +20,17 @@ Your task is to answer accurately, using retrieved context when it supports the 
 GUIDELINES:
 1. For questions about the uploaded documents, use only relevant retrieved context and cite the source document and chunk.
 2. Do not cite retrieved documents that do not support the answer.
-3. If a general factual question is not answered by the context, answer from general knowledge and begin exactly with: "{general_knowledge_prefix}"
+3. Answer general-knowledge questions even when no uploaded document is relevant. Begin these answers exactly with: "{general_knowledge_prefix}"
 4. If a question requires user-specific or document-specific facts that are not in the context, say that the uploaded documents do not contain enough information. Do not guess.
-5. Adhere strictly to the user preferences and persona instructions provided below.
+5. Give useful, well-developed answers: explain the key points, add a relevant example or steps when useful, and mention important caveats. Respect requests for brief or code-only answers.
+6. For the current date or time in India, use the authoritative clock below. Do not guess or claim you cannot access a clock.
+7. You do not have live web access. For live news, weather, prices, or other changing facts not present in the context, state that limitation instead of inventing an answer.
+8. Adhere strictly to the user preferences and persona instructions provided below.
 
 {persona_context}
+
+AUTHORITATIVE CURRENT DATE AND TIME:
+{current_datetime_context}
 
 RETRIEVED CONTEXT:
 {context_block}
@@ -73,6 +81,15 @@ class GeminiGenerator:
 
     def __init__(self, model: str = "gemini-3.5-flash-lite"):
         self.model = model or settings.GEMINI_MODEL
+
+    @staticmethod
+    def _current_datetime_context() -> str:
+        now = datetime.now(INDIA_TIMEZONE)
+        utc_now = now.astimezone(timezone.utc)
+        return (
+            f"Asia/Kolkata (IST): {now.strftime('%A, %d %B %Y, %I:%M:%S %p %Z')} "
+            f"(UTC+05:30). UTC: {utc_now.strftime('%A, %d %B %Y, %H:%M:%S %Z')}."
+        )
 
     def _call_gemini_api(self, prompt: str) -> str:
         """Invokes Gemini generateContent REST endpoint."""
@@ -221,6 +238,7 @@ class GeminiGenerator:
                 persona_context=persona_context,
                 context_block=context_block,
                 general_knowledge_prefix=GENERAL_KNOWLEDGE_PREFIX,
+                current_datetime_context=self._current_datetime_context(),
             ) + f"\nUSER QUERY: {query}\nANSWER:"
 
             answer_text = self._call_gemini_api(full_prompt)
