@@ -43,6 +43,7 @@ Standard RAG architectures suffer from context fragmentation, lack of keyword pr
 3. **Cohere ReRank & Context Compression**: Re-evaluates top 20 candidate parent nodes with Cohere ReRank (`rerank-english-v3.0`), discards items falling below a relevance threshold ($0.01$), and compresses context down to the **top 5 most relevant documents** to prune token noise.
 4. **Mem0 Persistent Semantic Memory**: Automatically extracts user preferences, coding language choices, and style preferences from conversations, associating them with `user_id`. In future sessions, memories are retrieved and injected into Google Gemini's system persona to dynamically adapt responses.
 5. **Real-Time Execution Latency Telemetry**: Every chat response returns real, non-zero execution latencies in milliseconds calculated via Python's high-precision monotonic `time.perf_counter()`.
+6. **Single-Document Summaries**: Broad summary requests use the full indexed document when exactly one document is available, rather than losing all context to reranker thresholding.
 
 ---
 

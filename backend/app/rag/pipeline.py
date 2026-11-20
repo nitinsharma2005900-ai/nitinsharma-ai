@@ -1,3 +1,4 @@
+import re
 import time
 from pathlib import Path
 from typing import Dict, Any, List, Optional
@@ -20,6 +21,12 @@ from app.schemas.chat import (
     CitationItem,
     RetrievedContextItem,
     MemoryInfo,
+)
+
+SUMMARY_REQUEST_PATTERN = re.compile(
+    r"\b(?:summar(?:y|ize|ise|izing|ising)|main\s+points?|key\s+points?|"
+    r"important\s+points?|overview|takeaways|gist|saaransh|mukhya\s+baatein)\b",
+    re.IGNORECASE,
 )
 
 
@@ -50,6 +57,52 @@ class RAGPipeline:
 
         # Index any existing documents on initialization
         self._sync_retrieval_indices()
+
+    def _document_summary_context(
+        self,
+        query: str,
+    ) -> Optional[List[RerankedDocument]]:
+        if not SUMMARY_REQUEST_PATTERN.search(query):
+            return None
+
+        documents = self.doc_service.list_documents()
+        normalized_query = re.sub(r"[\W_]+", " ", query.casefold())
+        named_documents = [
+            document
+            for document in documents
+            if re.sub(r"[\W_]+", " ", Path(document.filename).stem.casefold())
+            in normalized_query
+        ]
+
+        if len(named_documents) == 1:
+            document = named_documents[0]
+        elif not named_documents and len(documents) == 1:
+            document = documents[0]
+        else:
+            return None
+
+        if not document.parent_chunks:
+            return None
+
+        context = []
+        for parent in document.parent_chunks:
+            matched_child = None
+            for child_id in parent.child_ids:
+                matched_child = self.doc_service.get_child_chunk(child_id)
+                if matched_child:
+                    break
+
+            context.append(
+                RerankedDocument(
+                    parent_chunk=parent,
+                    matched_child=matched_child,
+                    relevance_score=1.0,
+                    compressed_text=parent.text,
+                    rrf_score=0.0,
+                )
+            )
+
+        return context
 
     def _sync_retrieval_indices(self):
         """Fit BM25 and sync vector store with all available child chunks."""
@@ -98,24 +151,30 @@ class RAGPipeline:
         stored_memories = [m.fact for m in self.memory_store.get_user_memories(user_id)]
         persona_prompt = self.memory_store.build_persona_prompt(user_id)
 
+        summary_context = self._document_summary_context(query)
+
         # Step 2: Hybrid Retrieval & Parent Document Retrieval
         fused_candidates: List[FusionResult] = []
         parent_candidates = []
         with timer.measure("retrieval"):
-            hybrid = HybridRetriever(
-                vector_store=self.vector_store,
-                bm25_retriever=self.bm25_retriever,
-                k=settings.RRF_K,
-            )
-            fused_candidates, _ = hybrid.retrieve(query, top_k_candidates=settings.TOP_K_CANDIDATES)
-            parent_candidates = self.parent_retriever.retrieve_parents(
-                fused_candidates, max_parents=settings.TOP_K_CANDIDATES
-            )
+            if not summary_context:
+                hybrid = HybridRetriever(
+                    vector_store=self.vector_store,
+                    bm25_retriever=self.bm25_retriever,
+                    k=settings.RRF_K,
+                )
+                fused_candidates, _ = hybrid.retrieve(query, top_k_candidates=settings.TOP_K_CANDIDATES)
+                parent_candidates = self.parent_retriever.retrieve_parents(
+                    fused_candidates, max_parents=settings.TOP_K_CANDIDATES
+                )
 
         # Step 3: Cohere ReRank & Context Compression
         reranked_docs: List[RerankedDocument] = []
         with timer.measure("rerank"):
-            reranked_docs = self.compressor.rerank_and_compress(query, parent_candidates)
+            if summary_context:
+                reranked_docs = summary_context
+            else:
+                reranked_docs = self.compressor.rerank_and_compress(query, parent_candidates)
 
         # Step 4: Generation with Gemini + Persona Adaptation + Citations
         answer_text: str = ""
